@@ -17,10 +17,13 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <opencv/cv.h>
+#include <vector>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <aruco/aruco.h>
+#include <aruco/cvdrawingutils.h>
 
 #define ARUCO_FOLLOWER_WINDOW "Aruco Follower Window"
 
@@ -52,8 +55,17 @@ namespace br {
 						image_transport::Subscriber image_sub_;
 						image_transport::Publisher image_pub_;
 
-						cv::Mat imgRGB_;
+						cv::Mat input_image_, output_image_;
 						int width_, height_;
+
+						aruco::CameraParameters TheCameraParameters;
+						int ThePyrDownLevel;
+						float TheMarkerSize;
+						aruco::MarkerDetector MDetector;
+						std::vector<aruco::Marker> TheMarkers;
+
+						double t_x_, t_y_, t_z_;
+						double r_x_, r_y_, r_z_;
 
 						void imageCallback(const sensor_msgs::ImageConstPtr& msg);
 
