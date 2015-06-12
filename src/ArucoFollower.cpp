@@ -25,6 +25,10 @@ ArucoFollower::ArucoFollower() :
 	image_pub_ = it_.advertise("/aruco_follower/output_video", 1);
 	//imgRGB_ = cv::Mat(width_, height_, CV_8UC3, cv::Scalar::all(0));
 	cv::namedWindow(ARUCO_FOLLOWER_WINDOW);
+
+	TheMarkerSize = 0.05;
+	TheCameraParameters.readFromXMLFile("../camera.yml");
+        TheCameraParameters.resize(input_image_.size());
 }
 
 /**
@@ -43,6 +47,7 @@ void ArucoFollower::spin() {
 	ros::Rate loop_rate(10.0);
 	while (ros::ok()) {
 		spinOnce();
+		ROS_INFO("Tx: %.4f, Ty: %.4f, Rz: %.4f", t_x_, t_y_, r_z_);
 		loop_rate.sleep();
 	}
 }
@@ -70,6 +75,24 @@ void ArucoFollower::imageCallback(const sensor_msgs::ImageConstPtr& msg)
 		return;
 	} 
 
-	imgRGB_ = cv_ptr->image;
+	input_image_ = cv_ptr->image;
+	MDetector.detect(input_image_,TheMarkers,TheCameraParameters,TheMarkerSize);
+	input_image_.copyTo(output_image_);
+	for (unsigned int i=0;i<TheMarkers.size();i++) {
+		if (TheMarkers[i].id == 805) {
+			t_x_ = TheMarkers[i].Tvec.at<cv::Vec3f>(0,0)[0];
+			t_y_ = TheMarkers[i].Tvec.at<cv::Vec3f>(0,0)[1];
+			t_z_ = TheMarkers[i].Tvec.at<cv::Vec3f>(0,0)[2];
+
+			r_x_ = TheMarkers[i].Rvec.at<cv::Vec3f>(0,0)[0];
+			r_y_ = TheMarkers[i].Rvec.at<cv::Vec3f>(0,0)[1];
+			r_z_ = TheMarkers[i].Rvec.at<cv::Vec3f>(0,0)[2];
+		}
+		TheMarkers[i].draw(output_image_,cv::Scalar(0,0,255), 1);
+        }
+	for (unsigned int i=0;i<TheMarkers.size();i++) {
+            aruco::CvDrawingUtils::draw3dCube(output_image_,TheMarkers[i],TheCameraParameters);
+            aruco::CvDrawingUtils::draw3dAxis(output_image_,TheMarkers[i],TheCameraParameters);
+        }
 	image_pub_.publish(cv_ptr->toImageMsg());
 }
